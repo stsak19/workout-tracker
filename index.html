@@ -1,0 +1,544 @@
+<!DOCTYPE html>
+<html lang="el">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Workout">
+<meta name="theme-color" content="#0a0a0a">
+<title>Workout Tracker</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Bebas+Neue&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+:root { --accent:#e8ff47; --bg:#0a0a0a; --surface:#0e0e0e; --border:#1e1e1e; --muted:#555; --text:#f0f0f0; }
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
+body{background:var(--bg);color:var(--text);font-family:'DM Mono',monospace;min-height:100vh;overscroll-behavior:none;}
+input[type=number]::-webkit-inner-spin-button{-webkit-appearance:none;}
+input[type=number]{-moz-appearance:textfield;}
+button{font-family:inherit;}
+#app{max-width:480px;margin:0 auto;}
+
+.header{padding:14px 16px 12px;border-bottom:2px solid var(--accent);display:flex;justify-content:space-between;align-items:center;position:sticky;top:0;background:var(--bg);z-index:20;transition:border-color .3s;}
+.header-sub{font-size:9px;letter-spacing:4px;color:var(--muted);text-transform:uppercase;margin-bottom:2px;}
+.header-title{font-family:'Bebas Neue',sans-serif;font-size:26px;letter-spacing:3px;}
+.view-btns{display:flex;gap:5px;}
+.vbtn{background:transparent;border:1px solid #2a2a2a;color:var(--muted);border-radius:4px;padding:5px 9px;font-size:9px;letter-spacing:2px;text-transform:uppercase;cursor:pointer;transition:all .2s;}
+.vbtn.active{background:var(--accent);color:#000;border-color:var(--accent);}
+
+.day-tabs{display:grid;grid-template-columns:repeat(4,1fr);border-bottom:1px solid #111;}
+.dtab{background:transparent;border:none;border-bottom:3px solid transparent;padding:11px 4px 9px;cursor:pointer;color:var(--muted);font-family:inherit;transition:all .2s;text-align:center;}
+.dtab.active{background:#111;color:var(--text);}
+.dtab-lbl{font-size:9px;letter-spacing:2px;margin-bottom:3px;}
+.dtab-name{font-size:12px;font-weight:500;}
+.dtab-focus{font-size:8px;letter-spacing:1px;margin-top:2px;color:#333;}
+.dtab.active .dtab-focus{color:var(--accent);}
+
+.stats-bar{display:grid;grid-template-columns:repeat(4,1fr);background:#0c0c0c;border-bottom:1px solid #111;}
+.stat{padding:9px 0;text-align:center;border-right:1px solid #111;}
+.stat:last-child{border-right:none;}
+.stat-val{font-size:17px;font-weight:500;color:var(--accent);}
+.stat-lbl{font-size:8px;color:#333;letter-spacing:1px;text-transform:uppercase;margin-top:2px;}
+
+.ex-list{padding:10px 10px 110px;}
+.ex-card{margin-bottom:7px;border:1px solid var(--border);border-radius:8px;overflow:hidden;background:var(--surface);transition:border-color .2s;}
+.ex-card.expanded{border-color:var(--accent);}
+.ex-header{width:100%;background:transparent;border:none;padding:12px 13px;cursor:pointer;color:var(--text);display:flex;justify-content:space-between;align-items:center;gap:10px;}
+.ex-badge{width:28px;height:28px;border-radius:50%;background:#1a1a1a;border:2px solid #2a2a2a;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;color:var(--accent);flex-shrink:0;transition:all .2s;}
+.ex-badge.done{background:var(--accent);color:#000;border-color:var(--accent);}
+.ex-info{text-align:left;flex:1;min-width:0;}
+.ex-name{font-size:13px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.ex-meta{font-size:10px;color:var(--muted);margin-top:2px;}
+.ex-meta .lkg{color:var(--accent);}
+.ex-chevron{color:#333;font-size:13px;transition:transform .2s;flex-shrink:0;}
+.ex-card.expanded .ex-chevron{transform:rotate(180deg);}
+
+.sets-area{border-top:1px solid #111;padding:11px 13px 13px;}
+.hist-hint{background:#111;border-radius:6px;padding:7px 10px;margin-bottom:10px;font-size:10px;color:var(--muted);display:flex;gap:12px;flex-wrap:wrap;}
+.hw{color:#2a2a2a;}.hv{color:var(--accent);}
+.sg-hdr{display:grid;grid-template-columns:26px 1fr 1fr 36px;gap:6px;margin-bottom:6px;}
+.sc-hdr{font-size:8px;color:#2a2a2a;letter-spacing:2px;text-transform:uppercase;text-align:center;}
+.sc-hdr:first-child{text-align:left;}
+.set-row{display:grid;grid-template-columns:26px 1fr 1fr 36px;gap:6px;margin-bottom:6px;align-items:center;transition:opacity .2s;}
+.set-row.done-row{opacity:.45;}
+.set-num{font-size:11px;color:#333;font-weight:700;text-align:center;}
+.sinput{background:#141414;border:1px solid #1e1e1e;border-radius:6px;padding:9px 6px;color:var(--text);font-family:inherit;font-size:14px;width:100%;outline:none;transition:border-color .2s;text-align:center;}
+.sinput:focus{border-color:var(--accent);}
+.sinput.hv2{border-color:rgba(232,255,71,.35);}
+.stick{width:36px;height:36px;border-radius:6px;background:#141414;border:1px solid #2a2a2a;color:#444;font-size:15px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .15s;}
+.stick.ticked{background:var(--accent);border-color:var(--accent);color:#000;}
+.note-inp{width:100%;background:#111;border:1px solid #181818;border-radius:6px;padding:7px 10px;color:#555;font-family:inherit;font-size:11px;margin-top:5px;outline:none;}
+
+/* Edit exercise panel */
+.edit-panel{border-top:1px solid #111;padding:10px 13px 13px;background:#0a0a0a;}
+.edit-row{display:flex;gap:8px;align-items:center;margin-bottom:8px;}
+.edit-inp{flex:1;background:#141414;border:1px solid #1e1e1e;border-radius:6px;padding:8px 10px;color:var(--text);font-family:inherit;font-size:12px;outline:none;}
+.edit-inp:focus{border-color:var(--accent);}
+.edit-lbl{font-size:9px;color:#333;letter-spacing:2px;text-transform:uppercase;margin-bottom:5px;}
+.sets-adj{display:flex;align-items:center;gap:8px;}
+.adj-btn{width:30px;height:30px;border-radius:6px;background:#1a1a1a;border:1px solid #2a2a2a;color:var(--text);font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center;}
+.adj-val{font-size:16px;font-weight:500;min-width:20px;text-align:center;}
+.del-ex-btn{background:transparent;border:1px solid #3a1a1a;color:#ff4444;border-radius:6px;padding:7px 12px;font-size:10px;letter-spacing:1px;cursor:pointer;width:100%;margin-top:4px;}
+
+/* Add exercise */
+.add-ex-btn{width:100%;background:transparent;border:1px dashed #2a2a2a;border-radius:8px;padding:13px;color:#333;font-family:inherit;font-size:11px;letter-spacing:2px;text-transform:uppercase;cursor:pointer;transition:all .2s;margin-bottom:7px;}
+.add-ex-btn:hover{border-color:var(--accent);color:var(--accent);}
+.add-ex-panel{background:var(--surface);border:1px solid var(--accent);border-radius:8px;padding:14px;margin-bottom:7px;}
+.add-ex-title{font-size:10px;letter-spacing:3px;color:var(--accent);text-transform:uppercase;margin-bottom:12px;}
+.add-row{display:flex;gap:8px;margin-bottom:8px;}
+.add-inp{flex:1;background:#141414;border:1px solid #2a2a2a;border-radius:6px;padding:9px 10px;color:var(--text);font-family:inherit;font-size:13px;outline:none;}
+.add-inp:focus{border-color:var(--accent);}
+.add-meta{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:10px;}
+.add-meta-inp{background:#141414;border:1px solid #2a2a2a;border-radius:6px;padding:8px 6px;color:var(--text);font-family:inherit;font-size:12px;outline:none;text-align:center;width:100%;}
+.add-meta-lbl{font-size:8px;color:#333;letter-spacing:2px;text-transform:uppercase;margin-bottom:4px;}
+.confirm-btn{width:100%;background:var(--accent);color:#000;border:none;border-radius:6px;padding:11px;font-family:inherit;font-size:11px;font-weight:500;letter-spacing:2px;text-transform:uppercase;cursor:pointer;}
+.cancel-btn{width:100%;background:transparent;color:#444;border:1px solid #1e1e1e;border-radius:6px;padding:9px;font-family:inherit;font-size:10px;cursor:pointer;margin-top:6px;}
+
+/* History view */
+.hist-view{padding:14px 10px 110px;}
+.hist-title{font-size:10px;letter-spacing:3px;color:#333;text-transform:uppercase;margin-bottom:16px;}
+.week-block{margin-bottom:20px;}
+.week-lbl{font-size:10px;color:var(--accent);letter-spacing:2px;margin-bottom:8px;}
+.sess-card{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:11px 13px;margin-bottom:7px;}
+.sess-hdr{display:flex;justify-content:space-between;margin-bottom:8px;}
+.sess-name{font-size:13px;font-weight:500;}
+.sess-focus{font-size:9px;letter-spacing:1px;}
+.sess-ex-row{display:flex;justify-content:space-between;margin-bottom:3px;}
+.sex-name{font-size:10px;color:var(--muted);}
+.sex-kg{font-size:10px;color:var(--text);}
+.empty-state{color:#222;text-align:center;margin-top:60px;font-size:13px;line-height:2.2;}
+
+/* Chart view */
+.chart-view{padding:14px 10px 110px;}
+.chart-title{font-size:10px;letter-spacing:3px;color:#333;text-transform:uppercase;margin-bottom:14px;}
+.day-select{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px;}
+.dsel-btn{background:#0e0e0e;border:1px solid #1e1e1e;color:var(--muted);border-radius:6px;padding:6px 10px;font-size:10px;letter-spacing:1px;cursor:pointer;font-family:inherit;transition:all .2s;}
+.dsel-btn.active{border-color:var(--accent);color:var(--accent);}
+.ex-select{width:100%;background:#0e0e0e;border:1px solid #1e1e1e;border-radius:6px;padding:10px 12px;color:var(--text);font-family:inherit;font-size:12px;outline:none;margin-bottom:14px;-webkit-appearance:none;}
+.chart-wrap{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:14px;margin-bottom:10px;}
+.chart-no-data{color:#333;text-align:center;padding:40px 0;font-size:12px;}
+.prog-summary{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:10px;}
+.prog-card{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:10px;text-align:center;}
+.prog-val{font-size:20px;font-weight:500;}
+.prog-lbl{font-size:8px;color:#333;letter-spacing:1px;text-transform:uppercase;margin-top:3px;}
+.prog-up{color:#4ade80;}.prog-down{color:#f87171;}.prog-neu{color:var(--accent);}
+
+/* Bottom nav */
+.bnav{position:fixed;bottom:0;left:0;right:0;background:rgba(10,10,10,.96);backdrop-filter:blur(12px);border-top:1px solid #1a1a1a;display:flex;max-width:480px;margin:0 auto;padding-bottom:env(safe-area-inset-bottom);}
+.nbtn{flex:1;background:transparent;border:none;padding:11px 0;cursor:pointer;color:#333;font-family:inherit;font-size:8px;letter-spacing:2px;text-transform:uppercase;transition:color .2s;display:flex;flex-direction:column;align-items:center;gap:3px;}
+.nbtn.active{color:var(--accent);}
+.nicon{font-size:19px;}
+</style>
+</head>
+<body>
+<div id="app"></div>
+<script>
+// ── DEFAULT PLAN ──────────────────────────────────────────────
+const DEFAULT_PLAN = {
+  "Άνω Α":{ focus:"Δύναμη", color:"#e8ff47", exercises:[
+    {id:"ua1",name:"Πιέσεις Αλτήρων (επίπεδο)",sets:4,reps:"6-8",rir:"1-2"},
+    {id:"ua2",name:"Κωπηλασία Kettlebell",sets:4,reps:"6-8",rir:"1-2"},
+    {id:"ua3",name:"Ώθηση Ώμων Αλτήρες",sets:3,reps:"8-10",rir:"2"},
+    {id:"ua4",name:"Έλξεις Μονόζυγο",sets:3,reps:"max",rir:"2"},
+    {id:"ua5",name:"Τρικέφαλα Τροχαλιοφόρο",sets:3,reps:"12-15",rir:"1-2"},
+    {id:"ua6",name:"Κάμψεις Δικεφάλου",sets:3,reps:"12-15",rir:"1-2"},
+  ]},
+  "Κάτω Α":{ focus:"Δύναμη", color:"#47c8ff", exercises:[
+    {id:"la1",name:"Goblet Squat Kettlebell",sets:4,reps:"8-10",rir:"1-2"},
+    {id:"la2",name:"Romanian Deadlift Αλτήρες",sets:3,reps:"8-10",rir:"2"},
+    {id:"la3",name:"Πρέσα Ποδιών",sets:3,reps:"10-12",rir:"1-2"},
+    {id:"la4",name:"Κάμψη Ποδοκνημικής",sets:3,reps:"10-12",rir:"1-2"},
+    {id:"la5",name:"Άνοδος στις Μύτες",sets:4,reps:"12-15",rir:"1"},
+  ]},
+  "Άνω Β":{ focus:"Υπερτροφία", color:"#ff6b47", exercises:[
+    {id:"ub1",name:"Πιέσεις Αλτήρων (κεκλιμένο)",sets:4,reps:"10-12",rir:"1-2"},
+    {id:"ub2",name:"Κωπηλασία Τροχαλιοφόρο",sets:4,reps:"10-12",rir:"1-2"},
+    {id:"ub3",name:"Πλάγιες Αναγωγές Kettlebell",sets:3,reps:"15-20",rir:"1"},
+    {id:"ub4",name:"Face Pull Τροχαλιοφόρο",sets:3,reps:"15-20",rir:"1"},
+    {id:"ub5",name:"Εκτάσεις Τρικεφάλου",sets:3,reps:"12-15",rir:"1-2"},
+    {id:"ub6",name:"Hammer Curl Αλτήρες",sets:3,reps:"12-15",rir:"1-2"},
+  ]},
+  "Κάτω Β":{ focus:"Υπερτροφία", color:"#c847ff", exercises:[
+    {id:"lb1",name:"Πρέσα Ποδιών",sets:4,reps:"12-15",rir:"1-2"},
+    {id:"lb2",name:"Kettlebell Swing",sets:4,reps:"15-20",rir:"1"},
+    {id:"lb3",name:"Lunges Αλτήρες",sets:3,reps:"10-12/πόδι",rir:"2"},
+    {id:"lb4",name:"Κάμψη Ποδοκνημικής",sets:3,reps:"12-15",rir:"1-2"},
+    {id:"lb5",name:"Έκταση Τετρακεφάλου",sets:3,reps:"15-20",rir:"1"},
+    {id:"lb6",name:"Άνοδος στις Μύτες",sets:4,reps:"12-15",rir:"1"},
+  ]}
+};
+const DAYS = ["Άνω Α","Κάτω Α","Άνω Β","Κάτω Β"];
+const DAY_LABELS = ["ΔΕΥ","ΤΡΙ","ΠΕΜ","ΠΑΡ"];
+const SK_LOG = "wt_log_v3";
+const SK_PLAN = "wt_plan_v3";
+
+// ── STATE ─────────────────────────────────────────────────────
+let S = {
+  view:"workout",
+  activeDay:"Άνω Α",
+  expandedEx:null,
+  editingEx:null,
+  showAddEx:false,
+  chartDay:"Άνω Α",
+  chartEx:null,
+  addForm:{name:"",sets:3,reps:"8-12",rir:"2"},
+  log:{},
+  plan:{}
+};
+
+function loadState(){
+  try{ S.log=JSON.parse(localStorage.getItem(SK_LOG)||"{}"); }catch{S.log={};}
+  try{
+    const p=localStorage.getItem(SK_PLAN);
+    S.plan=p?JSON.parse(p):JSON.parse(JSON.stringify(DEFAULT_PLAN));
+  }catch{S.plan=JSON.parse(JSON.stringify(DEFAULT_PLAN));}
+}
+function saveLog(){ try{localStorage.setItem(SK_LOG,JSON.stringify(S.log));}catch{} }
+function savePlan(){ try{localStorage.setItem(SK_PLAN,JSON.stringify(S.plan));}catch{} }
+
+function weekKey(){
+  const n=new Date(),j=new Date(n.getFullYear(),0,1);
+  const w=Math.ceil(((n-j)/86400000+j.getDay()+1)/7);
+  return `${n.getFullYear()}-W${String(w).padStart(2,'0')}`;
+}
+function uid(){ return 'ex'+Date.now()+Math.floor(Math.random()*1000); }
+
+// ── LOG HELPERS ───────────────────────────────────────────────
+function setField(exId,si,field,val){
+  const wk=weekKey(),d=S.activeDay;
+  if(!S.log[wk])S.log[wk]={};
+  if(!S.log[wk][d])S.log[wk][d]={};
+  if(!S.log[wk][d][exId])S.log[wk][d][exId]={};
+  if(si==='_note'){S.log[wk][d][exId]._note=val;}
+  else{
+    if(!S.log[wk][d][exId][si])S.log[wk][d][exId][si]={};
+    S.log[wk][d][exId][si][field]=val;
+  }
+  saveLog();
+}
+function getExLog(exId){ return S.log[weekKey()]?.[S.activeDay]?.[exId]||{}; }
+function getHistory(day,exId){
+  return Object.keys(S.log).sort().map(wk=>{
+    const el=S.log[wk]?.[day]?.[exId]||{};
+    const entries=Object.entries(el).filter(([k,v])=>k!=='_note'&&v?.kg);
+    if(!entries.length)return null;
+    const maxKg=Math.max(...entries.map(([,v])=>parseFloat(v.kg)||0));
+    return{week:wk,maxKg};
+  }).filter(Boolean);
+}
+
+// ── PLAN HELPERS ──────────────────────────────────────────────
+function updateExSets(dayName,exId,delta){
+  const ex=S.plan[dayName].exercises.find(e=>e.id===exId);
+  if(ex){ex.sets=Math.max(1,Math.min(8,ex.sets+delta));savePlan();}
+}
+function updateExName(dayName,exId,name){
+  const ex=S.plan[dayName].exercises.find(e=>e.id===exId);
+  if(ex){ex.name=name;savePlan();}
+}
+function deleteEx(dayName,exId){
+  S.plan[dayName].exercises=S.plan[dayName].exercises.filter(e=>e.id!==exId);
+  S.editingEx=null;savePlan();
+}
+function addEx(dayName){
+  const f=S.addForm;
+  if(!f.name.trim())return;
+  S.plan[dayName].exercises.push({id:uid(),name:f.name.trim(),sets:parseInt(f.sets)||3,reps:f.reps||"8-12",rir:f.rir||"2"});
+  S.addForm={name:"",sets:3,reps:"8-12",rir:"2"};
+  S.showAddEx=false;
+  savePlan();
+}
+
+// ── CHART ─────────────────────────────────────────────────────
+let chartInst=null;
+function renderChart(){
+  const canvas=document.getElementById('prog-chart');
+  if(!canvas)return;
+  const day=S.chartDay;
+  const exId=S.chartEx;
+  if(!exId){canvas.parentElement.innerHTML='<div class="chart-no-data">Επίλεξε άσκηση για να δεις γράφημα</div>';return;}
+  const hist=getHistory(day,exId);
+  if(hist.length<2){
+    canvas.parentElement.innerHTML='<div class="chart-no-data">Χρειάζονται τουλάχιστον 2 εβδομάδες δεδομένων</div>';
+    return;
+  }
+  const color=S.plan[day]?.color||'#e8ff47';
+  if(chartInst){chartInst.destroy();chartInst=null;}
+  const labels=hist.map(h=>`W${h.week.split('-W')[1]}`);
+  const data=hist.map(h=>h.maxKg);
+  chartInst=new Chart(canvas,{
+    type:'line',
+    data:{
+      labels,
+      datasets:[{
+        label:'Max kg',data,
+        borderColor:color,
+        backgroundColor:color+'22',
+        borderWidth:2,
+        pointBackgroundColor:color,
+        pointRadius:5,
+        pointHoverRadius:7,
+        fill:true,
+        tension:0.3
+      }]
+    },
+    options:{
+      responsive:true,
+      plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>`${ctx.parsed.y} kg`}}},
+      scales:{
+        x:{ticks:{color:'#555',font:{family:'DM Mono',size:10}},grid:{color:'#1a1a1a'}},
+        y:{ticks:{color:'#555',font:{family:'DM Mono',size:10},callback:v=>`${v}kg`},grid:{color:'#1a1a1a'}}
+      }
+    }
+  });
+}
+
+// ── RENDER ────────────────────────────────────────────────────
+function render(){
+  const wk=weekKey();
+  const plan=S.plan[S.activeDay];
+  const accent=plan?.color||'#e8ff47';
+  document.documentElement.style.setProperty('--accent',accent);
+
+  const dayLog=S.log[wk]?.[S.activeDay]||{};
+  const totalSets=plan?.exercises.reduce((a,e)=>a+e.sets,0)||0;
+  const totalSessions=Object.values(S.log).reduce((a,w)=>a+Object.keys(w).length,0);
+  const wkNum=wk.split('-W')[1];
+
+  let html=`<div class="header">
+    <div><div class="header-sub">Workout Tracker</div><div class="header-title">ΣΤΆΘΗΣ</div></div>
+    <div class="view-btns">
+      <button class="vbtn ${S.view==='workout'?'active':''}" onclick="sv('workout')">Προπ.</button>
+      <button class="vbtn ${S.view==='history'?'active':''}" onclick="sv('history')">Ιστορ.</button>
+      <button class="vbtn ${S.view==='chart'?'active':''}" onclick="sv('chart')">📈</button>
+    </div>
+  </div>`;
+
+  // ── WORKOUT VIEW ──
+  if(S.view==='workout'){
+    html+=`<div class="day-tabs">`;
+    DAYS.forEach((day,i)=>{
+      const d=S.plan[day];
+      const hasDone=Object.values(S.log[wk]?.[day]||{}).some(ex=>Object.entries(ex).some(([k,v])=>k!=='_note'&&v?.done));
+      const isA=S.activeDay===day;
+      html+=`<button class="dtab ${isA?'active':''}" onclick="sd('${day}')" style="${isA?`border-bottom-color:${d.color}`:''}">
+        <div class="dtab-lbl">${DAY_LABELS[i]}</div>
+        <div class="dtab-name">${day}</div>
+        <div class="dtab-focus">${hasDone?'✓ DONE':d.focus.toUpperCase()}</div>
+      </button>`;
+    });
+    html+=`</div>`;
+    html+=`<div class="stats-bar">
+      <div class="stat"><div class="stat-val">W${wkNum}</div><div class="stat-lbl">Εβδ.</div></div>
+      <div class="stat"><div class="stat-val">${plan.exercises.length}</div><div class="stat-lbl">Ασκήσεις</div></div>
+      <div class="stat"><div class="stat-val">${totalSets}</div><div class="stat-lbl">Σύν.Σετ</div></div>
+      <div class="stat"><div class="stat-val">${totalSessions}</div><div class="stat-lbl">Sessions</div></div>
+    </div>`;
+    html+=`<div class="ex-list">`;
+
+    plan.exercises.forEach(ex=>{
+      const exLog=dayLog[ex.id]||{};
+      const done=Object.entries(exLog).filter(([k,v])=>k!=='_note'&&v?.done).length;
+      const allDone=done===ex.sets;
+      const isExp=S.expandedEx===ex.id;
+      const isEdit=S.editingEx===ex.id;
+      const hist=getHistory(S.activeDay,ex.id);
+      const lastKg=hist.length?hist[hist.length-1].maxKg:null;
+
+      html+=`<div class="ex-card ${isExp?'expanded':''}">
+        <div style="display:flex;align-items:center;">
+          <button class="ex-header" style="flex:1" onclick="te('${ex.id}')">
+            <div class="ex-badge ${allDone?'done':''}">${allDone?'✓':`${done}/${ex.sets}`}</div>
+            <div class="ex-info">
+              <div class="ex-name">${ex.name}</div>
+              <div class="ex-meta">${ex.sets} σετ · ${ex.reps} · RIR ${ex.rir}${lastKg?` <span class="lkg">· ${lastKg}kg</span>`:''}</div>
+            </div>
+            <div class="ex-chevron">▾</div>
+          </button>
+          <button onclick="toggleEdit('${ex.id}')" style="background:transparent;border:none;color:${isEdit?'var(--accent)':'#2a2a2a'};padding:12px 10px;cursor:pointer;font-size:14px;">⚙</button>
+        </div>`;
+
+      if(isEdit){
+        html+=`<div class="edit-panel">
+          <div class="edit-lbl">Όνομα Άσκησης</div>
+          <div class="edit-row">
+            <input class="edit-inp" value="${ex.name}" onchange="renameEx('${ex.id}',this.value)" placeholder="Όνομα...">
+          </div>
+          <div class="edit-lbl">Αριθμός Σετ</div>
+          <div class="sets-adj">
+            <button class="adj-btn" onclick="adjSets('${ex.id}',-1)">−</button>
+            <div class="adj-val">${ex.sets}</div>
+            <button class="adj-btn" onclick="adjSets('${ex.id}',1)">+</button>
+          </div>
+          <button class="del-ex-btn" onclick="delEx('${ex.id}')">🗑 Διαγραφή Άσκησης</button>
+        </div>`;
+      }
+
+      if(isExp){
+        html+=`<div class="sets-area">`;
+        if(hist.length){
+          html+=`<div class="hist-hint">`;
+          hist.slice(-4).forEach(h=>{ html+=`<span><span class="hw">W${h.week.split('-W')[1]}: </span><span class="hv">${h.maxKg}kg</span></span>`; });
+          html+=`</div>`;
+        }
+        html+=`<div class="sg-hdr"><div class="sc-hdr">Σετ</div><div class="sc-hdr">Κιλά</div><div class="sc-hdr">Reps</div><div></div></div>`;
+        for(let si=0;si<ex.sets;si++){
+          const s=exLog[si]||{};
+          html+=`<div class="set-row ${s.done?'done-row':''}">
+            <div class="set-num">${si+1}</div>
+            <input class="sinput ${s.kg?'hv2':''}" type="number" inputmode="decimal" placeholder="${lastKg||'kg'}" value="${s.kg||''}" onchange="sf('${ex.id}',${si},'kg',this.value)">
+            <input class="sinput ${s.reps?'hv2':''}" type="number" inputmode="numeric" placeholder="${ex.reps.includes('-')?ex.reps.split('-')[1]:ex.reps}" value="${s.reps||''}" onchange="sf('${ex.id}',${si},'reps',this.value)">
+            <button class="stick ${s.done?'ticked':''}" onclick="tt('${ex.id}',${si})">✓</button>
+          </div>`;
+        }
+        html+=`<input class="note-inp" type="text" placeholder="Σημειώσεις..." value="${exLog._note||''}" onchange="sn('${ex.id}',this.value)">
+        </div>`;
+      }
+      html+=`</div>`;
+    });
+
+    // Add exercise
+    if(S.showAddEx){
+      html+=`<div class="add-ex-panel">
+        <div class="add-ex-title">+ Νέα Άσκηση</div>
+        <div class="add-meta-lbl">Όνομα</div>
+        <div class="add-row">
+          <input class="add-inp" id="add-name" placeholder="π.χ. Chest Fly..." value="${S.addForm.name}" oninput="S.addForm.name=this.value">
+        </div>
+        <div class="add-meta">
+          <div>
+            <div class="add-meta-lbl">Σετ</div>
+            <input class="add-meta-inp" type="number" inputmode="numeric" value="${S.addForm.sets}" oninput="S.addForm.sets=this.value">
+          </div>
+          <div>
+            <div class="add-meta-lbl">Reps</div>
+            <input class="add-meta-inp" value="${S.addForm.reps}" oninput="S.addForm.reps=this.value">
+          </div>
+          <div>
+            <div class="add-meta-lbl">RIR</div>
+            <input class="add-meta-inp" value="${S.addForm.rir}" oninput="S.addForm.rir=this.value">
+          </div>
+        </div>
+        <button class="confirm-btn" onclick="confirmAdd()">Προσθήκη</button>
+        <button class="cancel-btn" onclick="S.showAddEx=false;render()">Ακύρωση</button>
+      </div>`;
+    } else {
+      html+=`<button class="add-ex-btn" onclick="S.showAddEx=true;render()">+ Προσθήκη Άσκησης</button>`;
+    }
+    html+=`</div>`;
+
+  // ── HISTORY VIEW ──
+  } else if(S.view==='history'){
+    const allWks=Object.keys(S.log).sort().reverse();
+    html+=`<div class="hist-view"><div class="hist-title">Ιστορικό Προπονήσεων</div>`;
+    if(!allWks.length) html+=`<div class="empty-state">Δεν υπάρχουν δεδομένα ακόμα.<br><span style="color:#2a2a2a;font-size:11px">Ξεκίνα να καταγράφεις!</span></div>`;
+    allWks.forEach(wk=>{
+      const wkData=S.log[wk];
+      const hasSess=DAYS.some(day=>{
+        const dl=wkData[day];
+        return dl&&Object.values(dl).some(ex=>Object.entries(ex).some(([k,v])=>k!=='_note'&&v?.kg));
+      });
+      if(!hasSess)return;
+      html+=`<div class="week-block"><div class="week-lbl">ΕΒΔΟΜΑΔΑ ${wk.split('-W')[1]} · ${wk.split('-W')[0]}</div>`;
+      DAYS.forEach(day=>{
+        const dl=wkData[day]; if(!dl)return;
+        const d=S.plan[day];
+        const rows=d.exercises.map(ex=>{
+          const el=dl[ex.id]||{};
+          const ents=Object.entries(el).filter(([k,v])=>k!=='_note'&&v?.kg);
+          if(!ents.length)return null;
+          const mx=Math.max(...ents.map(([,v])=>parseFloat(v.kg)||0));
+          return `<div class="sess-ex-row"><span class="sex-name">${ex.name}</span><span class="sex-kg">${mx}kg</span></div>`;
+        }).filter(Boolean).join('');
+        if(!rows)return;
+        html+=`<div class="sess-card">
+          <div class="sess-hdr"><span class="sess-name">${day}</span><span class="sess-focus" style="color:${d.color}">${d.focus.toUpperCase()}</span></div>
+          ${rows}
+        </div>`;
+      });
+      html+=`</div>`;
+    });
+    html+=`</div>`;
+
+  // ── CHART VIEW ──
+  } else if(S.view==='chart'){
+    const cd=S.chartDay;
+    const cplan=S.plan[cd];
+    if(!S.chartEx&&cplan?.exercises?.length) S.chartEx=cplan.exercises[0].id;
+    html+=`<div class="chart-view">
+      <div class="chart-title">Εξέλιξη Επιδόσεων</div>
+      <div class="day-select">`;
+    DAYS.forEach(day=>{
+      const d=S.plan[day];
+      html+=`<button class="dsel-btn ${cd===day?'active':''}" style="${cd===day?`border-color:${d.color};color:${d.color}`:''}" onclick="scd('${day}')">${day}</button>`;
+    });
+    html+=`</div>
+      <select class="ex-select" onchange="sce(this.value)">`;
+    cplan.exercises.forEach(ex=>{
+      html+=`<option value="${ex.id}" ${S.chartEx===ex.id?'selected':''}>${ex.name}</option>`;
+    });
+    html+=`</select>
+      <div class="chart-wrap"><canvas id="prog-chart"></canvas></div>`;
+
+    // Summary
+    if(S.chartEx){
+      const hist=getHistory(cd,S.chartEx);
+      if(hist.length>=2){
+        const first=hist[0].maxKg, last=hist[hist.length-1].maxKg;
+        const diff=last-first, pct=((diff/first)*100).toFixed(1);
+        const cls=diff>0?'prog-up':diff<0?'prog-down':'prog-neu';
+        html+=`<div class="prog-summary">
+          <div class="prog-card"><div class="prog-val prog-neu">${first}kg</div><div class="prog-lbl">Αρχή</div></div>
+          <div class="prog-card"><div class="prog-val prog-neu">${last}kg</div><div class="prog-lbl">Τώρα</div></div>
+          <div class="prog-card"><div class="prog-val ${cls}">${diff>0?'+':''}${diff}kg</div><div class="prog-lbl">${pct>0?'+':''}${pct}%</div></div>
+        </div>`;
+      }
+    }
+    html+=`</div>`;
+  }
+
+  // Bottom nav
+  html+=`<div class="bnav">
+    <button class="nbtn ${S.view==='workout'?'active':''}" onclick="sv('workout')"><span class="nicon">🏋️</span>Προπόνηση</button>
+    <button class="nbtn ${S.view==='history'?'active':''}" onclick="sv('history')"><span class="nicon">📋</span>Ιστορικό</button>
+    <button class="nbtn ${S.view==='chart'?'active':''}" onclick="sv('chart')"><span class="nicon">📈</span>Γράφημα</button>
+  </div>`;
+
+  document.getElementById('app').innerHTML=html;
+  if(S.view==='chart') setTimeout(renderChart,50);
+}
+
+// ── ACTIONS ───────────────────────────────────────────────────
+function sv(v){S.view=v;render();}
+function sd(d){S.activeDay=d;S.expandedEx=null;S.editingEx=null;S.showAddEx=false;render();}
+function te(id){S.expandedEx=S.expandedEx===id?null:id;render();}
+function toggleEdit(id){S.editingEx=S.editingEx===id?null:id;render();}
+function sf(exId,si,f,v){setField(exId,si,f,v);}
+function sn(exId,v){setField(exId,'_note','_note',v);}
+function tt(exId,si){
+  const cur=S.log[weekKey()]?.[S.activeDay]?.[exId]?.[si]?.done||false;
+  setField(exId,si,'done',!cur);render();
+}
+function adjSets(exId,d){updateExSets(S.activeDay,exId,d);render();}
+function renameEx(exId,name){updateExName(S.activeDay,exId,name);}
+function delEx(exId){if(confirm('Διαγραφή άσκησης;')){deleteEx(S.activeDay,exId);render();}}
+function confirmAdd(){addEx(S.activeDay);render();}
+function scd(day){S.chartDay=day;S.chartEx=S.plan[day]?.exercises?.[0]?.id||null;render();}
+function sce(id){S.chartEx=id;render();}
+
+// ── PWA ───────────────────────────────────────────────────────
+const manifest={name:"Workout Tracker",short_name:"Workout",start_url:".",display:"standalone",background_color:"#0a0a0a",theme_color:"#0a0a0a",orientation:"portrait",icons:[{src:"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' fill='%230a0a0a'/%3E%3Ctext y='.9em' font-size='80'%3E🏋️%3C/text%3E%3C/svg%3E",sizes:"512x512",type:"image/svg+xml"}]};
+const mb=new Blob([JSON.stringify(manifest)],{type:'application/manifest+json'});
+const ml=document.createElement('link');ml.rel='manifest';ml.href=URL.createObjectURL(mb);document.head.appendChild(ml);
+if('serviceWorker' in navigator){
+  const sw=`const C='wt-v3';self.addEventListener('install',e=>{self.skipWaiting();});self.addEventListener('fetch',e=>{e.respondWith(fetch(e.request).catch(()=>caches.match(e.request)));});`;
+  const sb=new Blob([sw],{type:'application/javascript'});
+  navigator.serviceWorker.register(URL.createObjectURL(sb)).catch(()=>{});
+}
+
+// ── INIT ──────────────────────────────────────────────────────
+loadState();
+render();
+</script>
+</body>
+</html>
