@@ -19,14 +19,11 @@ input[type=number]{-moz-appearance:textfield;}
 button{font-family:inherit;}
 #app{max-width:480px;margin:0 auto;}
 
-.header{padding:14px 16px 12px;border-bottom:2px solid var(--accent);display:flex;justify-content:space-between;align-items:center;position:sticky;top:0;background:var(--bg);z-index:20;transition:border-color .3s;}
+.header{padding:14px 16px 12px;border-bottom:2px solid var(--accent);display:flex;justify-content:center;align-items:center;position:sticky;top:0;background:var(--bg);z-index:20;transition:border-color .3s;text-align:center;}
 .header-sub{font-size:9px;letter-spacing:4px;color:var(--muted);text-transform:uppercase;margin-bottom:2px;}
 .header-title{font-family:'Bebas Neue',sans-serif;font-size:26px;letter-spacing:3px;}
-.view-btns{display:flex;gap:5px;}
-.vbtn{background:transparent;border:1px solid #2a2a2a;color:var(--muted);border-radius:4px;padding:5px 9px;font-size:9px;letter-spacing:2px;text-transform:uppercase;cursor:pointer;transition:all .2s;}
-.vbtn.active{background:var(--accent);color:#000;border-color:var(--accent);}
 
-.day-tabs{display:grid;grid-template-columns:repeat(4,1fr);border-bottom:1px solid #111;}
+.day-tabs{display:grid;grid-template-columns:repeat(5,1fr);border-bottom:1px solid #111;}
 .dtab{background:transparent;border:none;border-bottom:3px solid transparent;padding:11px 4px 9px;cursor:pointer;color:var(--muted);font-family:inherit;transition:all .2s;text-align:center;}
 .dtab.active{background:#111;color:var(--text);}
 .dtab-lbl{font-size:9px;letter-spacing:2px;margin-bottom:3px;}
@@ -165,10 +162,20 @@ const DEFAULT_PLAN = {
     {id:"lb4",name:"Κάμψη Ποδοκνημικής",sets:3,reps:"12-15",rir:"1-2"},
     {id:"lb5",name:"Έκταση Τετρακεφάλου",sets:3,reps:"15-20",rir:"1"},
     {id:"lb6",name:"Άνοδος στις Μύτες",sets:4,reps:"12-15",rir:"1"},
+  ]},
+  "Recovery":{ focus:"Mobility", color:"#47ffb8", exercises:[
+    {id:"rc1",name:"Cat-Cow (σπονδυλική κινητοποίηση)",sets:3,reps:"10",rir:"-"},
+    {id:"rc2",name:"Hip 90/90 Stretch",sets:2,reps:"60sec/πλευρά",rir:"-"},
+    {id:"rc3",name:"Thoracic Rotation",sets:3,reps:"10/πλευρά",rir:"-"},
+    {id:"rc4",name:"Dead Bug (core stability)",sets:3,reps:"8/πλευρά",rir:"-"},
+    {id:"rc5",name:"Glute Bridge (ενεργοποίηση)",sets:3,reps:"15",rir:"-"},
+    {id:"rc6",name:"World's Greatest Stretch",sets:2,reps:"5/πλευρά",rir:"-"},
+    {id:"rc7",name:"Farmer Carry Kettlebell",sets:3,reps:"30m",rir:"-"},
+    {id:"rc8",name:"Hollow Body Hold (core)",sets:3,reps:"20-30sec",rir:"-"},
   ]}
 };
-const DAYS = ["Άνω Α","Κάτω Α","Άνω Β","Κάτω Β"];
-const DAY_LABELS = ["ΔΕΥ","ΤΡΙ","ΠΕΜ","ΠΑΡ"];
+const DAYS = ["Άνω Α","Κάτω Α","Recovery","Άνω Β","Κάτω Β"];
+const DAY_LABELS = ["ΔΕΥ","ΤΡΙ","ΤΕΤ","ΠΕΜ","ΠΑΡ"];
 const SK_LOG = "wt_log_v3";
 const SK_PLAN = "wt_plan_v3";
 
@@ -306,12 +313,7 @@ function render(){
   const wkNum=wk.split('-W')[1];
 
   let html=`<div class="header">
-    <div><div class="header-sub">Workout Tracker</div><div class="header-title">ΣΤΆΘΗΣ</div></div>
-    <div class="view-btns">
-      <button class="vbtn ${S.view==='workout'?'active':''}" onclick="sv('workout')">Προπ.</button>
-      <button class="vbtn ${S.view==='history'?'active':''}" onclick="sv('history')">Ιστορ.</button>
-      <button class="vbtn ${S.view==='chart'?'active':''}" onclick="sv('chart')">📈</button>
-    </div>
+    <div><div class="header-sub">Workout Tracker</div><div class="header-title">TSAK</div></div>
   </div>`;
 
   // ── WORKOUT VIEW ──
@@ -527,7 +529,9 @@ function scd(day){S.chartDay=day;S.chartEx=S.plan[day]?.exercises?.[0]?.id||null
 function sce(id){S.chartEx=id;render();}
 
 // ── PWA ───────────────────────────────────────────────────────
-const manifest={name:"Workout Tracker",short_name:"Workout",start_url:".",display:"standalone",background_color:"#0a0a0a",theme_color:"#0a0a0a",orientation:"portrait",icons:[{src:"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' fill='%230a0a0a'/%3E%3Ctext y='.9em' font-size='80'%3E🏋️%3C/text%3E%3C/svg%3E",sizes:"512x512",type:"image/svg+xml"}]};
+const iconSvg=`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><rect width="512" height="512" fill="#0a0a0a" rx="112"/><polygon points="300,60 180,280 250,280 210,450 340,220 265,220" fill="#e8ff47"/></svg>`;
+const iconUrl='data:image/svg+xml;base64,'+btoa(iconSvg);
+const manifest={name:"TSAK Workout",short_name:"TSAK",start_url:".",display:"standalone",background_color:"#0a0a0a",theme_color:"#0a0a0a",orientation:"portrait",icons:[{src:iconUrl,sizes:"512x512",type:"image/svg+xml"}]};
 const mb=new Blob([JSON.stringify(manifest)],{type:'application/manifest+json'});
 const ml=document.createElement('link');ml.rel='manifest';ml.href=URL.createObjectURL(mb);document.head.appendChild(ml);
 if('serviceWorker' in navigator){
