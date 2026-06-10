@@ -19,7 +19,7 @@ input[type=number]{-moz-appearance:textfield;}
 button{font-family:inherit;}
 #app{max-width:480px;margin:0 auto;}
 
-.header{padding:14px 16px 12px;border-bottom:2px solid var(--accent);display:flex;justify-content:center;align-items:center;position:sticky;top:0;background:var(--bg);z-index:20;transition:border-color .3s;text-align:center;}
+.header{padding:calc(env(safe-area-inset-top) + 14px) 16px 12px;border-bottom:2px solid var(--accent);display:flex;justify-content:center;align-items:center;position:sticky;top:0;background:var(--bg);z-index:20;transition:border-color .3s;text-align:center;}
 .header-sub{font-size:9px;letter-spacing:4px;color:var(--muted);text-transform:uppercase;margin-bottom:2px;}
 .header-title{font-family:'Bebas Neue',sans-serif;font-size:26px;letter-spacing:3px;}
 
